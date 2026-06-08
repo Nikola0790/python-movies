@@ -1,6 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
+from datetime import timedelta
 from rest_framework import status
 from rest_framework.test import APITestCase
 from .models import Cinema, Movie, Screening
@@ -63,6 +64,56 @@ class CinemaAPITests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(Cinema.objects.count(), 0)
+
+    def test_upcoming_movies_15_days_filter(self):
+        """
+        Verifies that 'upcoming_movies' field only includes unique movie titles
+        scheduled within the next 15 days.
+        """
+        now = timezone.now()
+
+        # 1. Create 3 different movies
+        movie_valid = Movie.objects.create(title="Inception", description="Dream thief", duration=148)
+        movie_far_future = Movie.objects.create(title="Avatar 5", description="Blue aliens", duration=160)
+        movie_duplicate = Movie.objects.create(title="Interstellar", description="Space travel", duration=169)
+
+        # 2. Schedule "Inception" for tomorrow (Inside the 15-day window -> SHOULD SHOW)
+        Screening.objects.create(
+            cinema=self.cinema, 
+            movie=movie_valid, 
+            date=now + timedelta(days=1)
+        )
+
+        # 3. Schedule "Avatar 5" for 20 days from now (Outside the window -> SHOULD NOT SHOW)
+        Screening.objects.create(
+            cinema=self.cinema, 
+            movie=movie_far_future, 
+            date=now + timedelta(days=20)
+        )
+
+        # 4. Schedule "Interstellar" TWICE within the 15-day window
+        # (Inside window -> SHOULD SHOW, but only ONCE)
+        Screening.objects.create(
+            cinema=self.cinema, 
+            movie=movie_duplicate, 
+            date=now + timedelta(days=5)
+        )
+        Screening.objects.create(
+            cinema=self.cinema, 
+            movie=movie_duplicate, 
+            date=now + timedelta(days=12)
+        )
+
+        response = self.client.get(self.detail_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        upcoming_movies_list = response.data.get('upcoming_movies')
+
+        self.assertEqual(len(upcoming_movies_list), 2)
+
+        self.assertIn("Inception", upcoming_movies_list)
+        self.assertIn("Interstellar", upcoming_movies_list)
+        self.assertNotIn("Avatar 5", upcoming_movies_list)
 
 
 class ScreeningAPITests(APITestCase):
