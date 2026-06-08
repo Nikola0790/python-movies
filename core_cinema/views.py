@@ -51,5 +51,18 @@ class CinemaViewSet(viewsets.ModelViewSet):
     serializer_class = CinemaSerializer
 
 class ScreeningViewSet(viewsets.ModelViewSet):
-    queryset = Screening.objects.all().order_by('date')
     serializer_class = ScreeningSerializer
+
+    def get_queryset(self):
+        queryset = Screening.objects.all().select_related('movie', 'cinema').order_by('date')
+
+        movie_title = self.request.query_params.get('movie')
+        cinema_city = self.request.query_params.get('city')
+
+        if movie_title:
+            queryset = queryset.filter(movie__title__icontains=movie_title)
+
+        if cinema_city:
+            queryset = queryset.filter(cinema__city__icontains=cinema_city)
+
+        return queryset
