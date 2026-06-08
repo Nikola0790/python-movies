@@ -23,9 +23,21 @@ class CinemaSerializer(serializers.ModelSerializer):
 
 class ScreeningSerializer(serializers.ModelSerializer):
 
-    movie = serializers.StringRelatedField()
-    cinema = serializers.StringRelatedField()
-
     class Meta:
         model = Screening
         fields = ["id", "movie", "cinema", "date"]
+        # By removing StringRelatedField from the top, 'movie' and 'cinema'
+        # are now writable integer fields again by default!
+
+    def to_representation(self, instance):
+        """
+        This method handles GET responses. We intercept the normal output
+        and replace the raw IDs with clean string names for the frontend.
+        """
+        representation = super().to_representation(instance)
+
+        # Swap the integer IDs out for strings dynamically
+        representation["movie"] = str(instance.movie)
+        representation["cinema"] = str(instance.cinema)
+
+        return representation
