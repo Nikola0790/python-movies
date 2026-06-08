@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from django.utils import timezone
+from datetime import timedelta
 from .models import Movie, Cinema, Screening
 
 
@@ -16,9 +18,22 @@ class CinemaSerializer(serializers.ModelSerializer):
         view_name="movie-detail",
     )
 
+    upcoming_movies = serializers.SerializerMethodField()
+
     class Meta:
         model = Cinema
-        fields = ["id", "name", "city", "movies"]
+        fields = ["id", "name", "city", "movies", 'upcoming_movies']
+
+    def get_upcoming_movies(self, obj):
+        now = timezone.now()
+        fifteen_days_later = now + timedelta(days=15)
+
+        movies_next_15_days = Movie.objects.filter(
+            screenings__cinema = obj,
+            screenings__date__range = (now, fifteen_days_later)
+        ).distinct()
+
+        return [movie.title for movie in movies_next_15_days]
 
 
 class ScreeningSerializer(serializers.ModelSerializer):
