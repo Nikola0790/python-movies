@@ -1,9 +1,9 @@
 from django.shortcuts import render, get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
-from .models import Movie, MovieStuff
-from .serializers import MovieSerializer
+from rest_framework import status, viewsets
+from .models import Movie, MovieStuff, Cinema, Screening
+from .serializers import MovieSerializer, CinemaSerializer, ScreeningSerializer
 
 
 class MovieView(APIView):
@@ -45,3 +45,11 @@ class MovieListView(APIView):
     
 #     # 2. "Whenever you need to convert that data to JSON or validate incoming data, use this:"
 #     serializer_class = MovieSerializer
+
+class CinemaViewSet(viewsets.ModelViewSet):
+    queryset = Cinema.objects.all().order_by('name')
+    serializer_class = CinemaSerializer
+
+class ScreeningViewSet(viewsets.ModelViewSet):
+    queryset = Screening.objects.all().order_by('date')
+    serializer_class = ScreeningSerializer
