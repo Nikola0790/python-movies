@@ -14,9 +14,27 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from core_cinema.views import MovieView, MovieListView, CinemaViewSet, ScreeningViewSet
+
+router = DefaultRouter()
+router.register(r"cinemas", CinemaViewSet, basename="cinema")
+router.register(r"screenings", ScreeningViewSet, basename="screening")
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path("admin/", admin.site.urls),
+    path(
+        "movies/",
+        MovieListView.as_view(),
+        name="movie-list",
+    ),
+    path(
+        "movies/<int:pk>",
+        MovieView.as_view(),
+        name="movie-detail",
+    ),
+    path("", include(router.urls)),
 ]
