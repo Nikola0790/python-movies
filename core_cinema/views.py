@@ -47,7 +47,7 @@ class MovieListView(APIView):
 #     serializer_class = MovieSerializer
 
 class CinemaViewSet(viewsets.ModelViewSet):
-    queryset = Cinema.objects.all().order_by('name')
+    queryset = Cinema.objects.all().prefetch_related('screenings__movie').order_by('name')
     serializer_class = CinemaSerializer
 
 class ScreeningViewSet(viewsets.ModelViewSet):
