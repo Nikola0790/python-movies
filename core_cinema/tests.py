@@ -194,3 +194,37 @@ class ScreeningAPITests(APITestCase):
         
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(Screening.objects.count(), 0)
+
+    def test_filter_screenings_by_movie_and_city(self):
+        """Verifies that screenings can be filtered using URL query parameters."""
+        other_movie = Movie.objects.create(title="The Dark Knight", description="Batman", duration=152)
+        other_cinema = Cinema.objects.create(name="Arena Cineplex", city="Novi Sad")
+        
+        Screening.objects.create(
+            movie=other_movie,
+            cinema=other_cinema,
+            date=self.screening_date
+        )
+
+        # Test filtering by Movie Title
+        # Looks like: /screenings/?movie=Inception
+        response = self.client.get(self.list_url, {'movie': 'Inception'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['movie'], "Inception")
+
+        # Test filtering by Cinema City
+        # Looks like: /screenings/?city=Novi Sad
+        response = self.client.get(self.list_url, {'city': 'Novi Sad'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['movie'], "The Dark Knight")
+        self.assertIn("Novi Sad", response.data[0]['cinema'])
+
+        # Test filtering by Movie title and Cinema city
+        # Looks like: /screenings/?movie=The+Dark+Knight&city=Novi+Sad
+        response = self.client.get(self.list_url, {'movie': 'The Dark Knight', 'city': 'Novi Sad'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['movie'], "The Dark Knight")
+        self.assertIn("Novi Sad", response.data[0]['cinema'])
